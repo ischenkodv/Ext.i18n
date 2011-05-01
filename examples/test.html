@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>Tabs Example</title>
+    <!-- Ext includes -->
+    <link rel="stylesheet" type="text/css" href="./extjs/resources/css/ext-all.css" />
+
+    <script type="text/javascript" src="./extjs/ext-all.js"></script>
+    <script type="text/javascript" src="../src/i18n/Translator.js"></script>
+    <script type="text/javascript">
+Ext.require('Ext.tab.*');
+
+Ext.onReady(function(){
+    var translator = new Ext.i18n.Translator({
+        data: [
+            {key: 'First tab', lang: 'fi', value: 'My first tab'},
+            {key: 'Second tab', lang: 'fi', value: 'My second tab'},
+            {key: '_first_tab_content_', section: 'content', lang: 'fi', value: 'Lorem ipsum dolor sit amet'},
+            {key: 'Some {0} nice {1} thing {2}', section: 'content', lang: 'fi', value: 'One {0} Two {1} Three {2}'}
+        ],
+        language: 'fi'
+    });
+  
+    // Assign it to global object for later usage.
+    Ext.i18n.setDefaultTranslator(translator);
+
+    // basic tabs 1, built from existing content
+    var tabs1 = Ext.createWidget('tabpanel', {
+        region: 'center',
+        activeTab: 0,
+        defaults :{
+            bodyPadding: 10
+        },
+        items: [{
+            title: Ext.i18n._('First tab'),
+            html: Ext.i18n._('_first_tab_content_', 'content')
+        },{
+            title: Ext.i18n._('Second tab'),
+            html: Ext.i18n._('Some {0} nice {1} thing {2}', [1,2,3], 'content')
+        }]
+    });
+    
+    // second tabs built from JS
+    var tabs2 = Ext.createWidget('tabpanel', {
+        region: 'south',
+        activeTab: 0,
+        plain: true,
+        height: 200,
+        split: true,
+        defaults :{
+            autoScroll: true,
+            bodyPadding: 10
+        },
+        items: [{
+                title: 'Normal Tab',
+                html: "My content was added during construction."
+            },{
+                title: 'Event Tab',
+                listeners: {
+                    activate: function(tab){
+                        alert(tab.title + ' was activated.');
+                    }
+                },
+                html: "I am tab 4's content. I also have an event listener attached."
+            },{
+                title: 'Disabled Tab',
+                disabled: true,
+                html: "Can't see me cause I'm disabled"
+            }
+        ]
+    });
+
+    var panel = Ext.createWidget('viewport', {
+        renderTo: Ext.getBody(),
+        layout: 'border',
+        title: 'test',
+        items: [
+            tabs1,
+            tabs2
+        ]
+    });
+});
+
+    </script>
+</head>
+<body>
+</body>
+</html>
