@@ -202,6 +202,7 @@ Ext.define('Ext.i18n.Translator', {
      * Get section by name. If section does not exists 
      * the new one will be created.
      * @param {string} name
+     * @return {Ext.util.HashMap}
      */
     getSection: function(name){
         if (name) {
