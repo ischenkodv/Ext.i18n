@@ -90,22 +90,7 @@ Ext.define('Ext.i18n.Translator', {
     constructor: function(config){
         config = config || {};
 
-        var storeConfig = {
-            type: 'json',
-            autoLoad: true,
-            fields: ['key','section','lang','value'],
-            data: [],
-            proxy: {
-                type: 'memory',
-                reader: {
-                    type: 'json',
-                }
-            }
-        };
-
-        if (Ext.isObject(config.store)) {
-            storeConfig = config.store;
-        }
+        this.buildStore(config.store);
 
         if (config.language) {
             this.setLanguage(config.language);
@@ -116,34 +101,58 @@ Ext.define('Ext.i18n.Translator', {
 
         this.addEvents('load');
 
-        this.store = Ext.createByAlias('store.' + storeConfig.type, storeConfig);
-        this.addTranslations(config.data, this.getLanguage());
+        this.loadTranslations(config.data, this.getLanguage());
+    },
+
+    /**
+     * Build store that used to fetch translations.
+     * @param {object} config
+     */
+    buildStore: function(config) {
+        if (!Ext.isObject(config)) {
+            config = {
+                type: 'json',
+                autoLoad: true,
+                fields: ['key','section','lang','value'],
+                data: [],
+                proxy: {
+                    type: 'memory',
+                    reader: {
+                        type: 'json',
+                    }
+                }
+            }
+        }
+
+
+        var store = Ext.createByAlias('store.' + config.type, config);
+        store.on('load', function(){
+            var me = this,
+                language = me.getLanguage();
+
+            store.each(function(rec){
+                var lang = rec.get('lang') || language,
+                    section = me.getSection(rec.get('section'));
+
+                section[lang + rec.get('key')] = rec.get('value');
+            });
+
+            me.fireEvent('load', language);
+        }, this);
+
+        this.store = store;
     },
 
     /**
      * Add translations to the translation object.
      * @param {array} data Data to load.
-     * @param {string} language Language for which we add translations (optional).
      */
-    addTranslations: function(data, language) {
+    loadTranslations: function(data) {
         if (!Ext.isArray(data)) {
             return false;
         }
 
-        var me = this;
-
-        language = language || '';
-
-        this.store.loadData(data);
-
-        this.store.each(function(rec){
-            var lang = rec.get('lang') || language,
-                section = me.getSection(rec.get('section'));
-
-            section[lang + rec.get('key')] = rec.get('value');
-        });
-
-        this.fireEvent('load', this.language);
+        this.store.loadRawData(data);
     },
 
     /**
