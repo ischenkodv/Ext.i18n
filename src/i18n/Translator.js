@@ -83,15 +83,29 @@ Ext.define('Ext.i18n', {
 Ext.define('Ext.i18n.Translator', {
     extend: 'Ext.util.Observable',
     alias: 'i18n.translator',
-
     language: null,
-
-    defaultSection: new Ext.util.HashMap(),
     sections: {},
+    defaultSection: {},
 
     constructor: function(config){
-
         config = config || {};
+
+        var storeConfig = {
+            type: 'json',
+            autoLoad: true,
+            fields: ['key','section','lang','value'],
+            data: [],
+            proxy: {
+                type: 'memory',
+                reader: {
+                    type: 'json',
+                }
+            }
+        };
+
+        if (Ext.isObject(config.store)) {
+            storeConfig = config.store;
+        }
 
         if (config.language) {
             this.setLanguage(config.language);
@@ -102,56 +116,34 @@ Ext.define('Ext.i18n.Translator', {
 
         this.addEvents('load');
 
-        var store;
-
-        if (Ext.isObject(config.store)) {
-            store = config.store;
-        } else {
-            store = {
-                type: 'json',
-                autoLoad: true,
-                fields: ['key','section','lang','value'],
-                data: [],
-                proxy: {
-                    type: 'memory',
-                    reader: {
-                        type: 'json',
-                    }
-                }
-            };
-        }
-
-        this.store = Ext.createByAlias('store.' + store.type, store);
-
-        this.addTranslations(config.data);
+        this.store = Ext.createByAlias('store.' + storeConfig.type, storeConfig);
+        this.addTranslations(config.data, this.getLanguage());
     },
 
     /**
      * Add translations to the translation object.
-     * @param {array} data - data to load.
-     * @return {boolean}
+     * @param {array} data Data to load.
+     * @param {string} language Language for which we add translations (optional).
      */
-    addTranslations: function(data){
+    addTranslations: function(data, language) {
         if (!Ext.isArray(data)) {
             return false;
         }
 
+        var me = this;
+
+        language = language || '';
+
         this.store.loadData(data);
 
-        var records = this.store.getRange(),
-            currLang = this.language;
+        this.store.each(function(rec){
+            var lang = rec.get('lang') || language,
+                section = me.getSection(rec.get('section'));
 
-        for (var i = records.length; --i >= 0;) {
-            var rec = records[i],
-                lang = rec.get('lang') || currLang,
-                section = this.getSection(rec.get('section'));
-
-            section.add(lang + rec.get('key'), rec.get('value'));
-        }
+            section[lang + rec.get('key')] = rec.get('value');
+        });
 
         this.fireEvent('load', this.language);
-
-        return true;
     },
 
     /**
@@ -162,7 +154,7 @@ Ext.define('Ext.i18n.Translator', {
     translate: function(key) {
         if (!this.language) return key;
 
-        var result = key, params, section = null;
+        var result = key, params, section = this.defaultSection;
 
         switch (arguments.length) {
             case 2:
@@ -182,13 +174,11 @@ Ext.define('Ext.i18n.Translator', {
                 }
 
                 break;
-            default:
-                section = this.defaultSection;
         }
 
         var k = this.language + key;
-        if (section.containsKey(k)) {
-            result = section.get(k);
+        if (section.hasOwnProperty(k)) {
+            result = section[k];
         }
 
         // Format values.
@@ -216,13 +206,13 @@ Ext.define('Ext.i18n.Translator', {
     getSection: function(name){
         if (name) {
             if (!this.sections[name]) {
-                this.sections[name] = new Ext.util.HashMap();
+                this.sections[name] = {};
             }
 
             return this.sections[name];
-        } else {
-            return this.defaultSection;
         }
+
+        return this.defaultSection;
     },
 
     /**
