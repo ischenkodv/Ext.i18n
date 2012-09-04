@@ -1,6 +1,8 @@
+Ext.Loader.setPath({
+    'I18n' : '/src/I18n'
+});
 Ext.syncRequire([
-    'Ext.i18n.Translator'
-    //'Ext.i18n.TranslationManager'
+    'I18n.Translator'
 ]);
 
 describe('Translator', function(){
@@ -20,7 +22,7 @@ describe('Translator', function(){
         ];
         language = 'fi';
 
-        translator = new Ext.i18n.Translator({
+        translator = new I18n.Translator({
             data: data,
             language: language
         });
@@ -57,3 +59,45 @@ describe('Translator', function(){
     });
 
 });
+
+describe('I18n', function(){
+    it('can register translator', function(){
+        var translator = new I18n.Translator;
+        I18n.register('foo', translator);
+        expect(I18n.getTranslator('foo') instanceof I18n.Translator).toBeTruthy();
+    });
+
+    it('can unregister translator by passing its key', function(){
+        var translator = new I18n.Translator;
+        I18n.register('foo', translator);
+        I18n.unregister('foo');
+        expect(I18n.getTranslator('foo') instanceof I18n.Translator).toBeFalsy();
+    });
+
+    it('can unregister translator by passing translator object', function(){
+        var translator = new I18n.Translator;
+        I18n.register('foo', translator);
+        I18n.unregister(translator);
+        expect(I18n.getTranslator('foo') instanceof I18n.Translator).toBeFalsy();
+    });
+
+    it('can set and get default translator', function(){
+        var translator = new I18n.Translator;
+        expect(I18n.setDefaultTranslator(translator)).toBeTruthy();
+        expect(I18n.getDefaultTranslator() instanceof I18n.Translator).toBeTruthy();
+
+        expect(I18n.setDefaultTranslator({foo:'bar'})).toBeFalsy();
+    });
+
+    it('can translate simple string', function(){
+        var translator = new I18n.Translator({
+            data: [
+                {key: 'a', lang: 'fi', value: 'a fi'}
+            ],
+            language: 'fi'
+        });
+        I18n.register('foo', translator);
+        I18n.setDefaultTranslator('foo');
+        expect(I18n._('a')).toEqual('a fi');
+    });
+})

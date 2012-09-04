@@ -1,11 +1,11 @@
 /**
- * @class Ext.i18n.Translator
+ * @class I18n.Translator
  *
  * Translator is intendent to translate texts in application.
  * Example usage:
  *
  *  // Initiate translator for finnish language - "fi".
- *  var translator = new Ext.i18n.Translator({
+ *  var translator = new I18n.Translator({
  *      data: [
  *          {key: 'a', lang: 'fi', value: 'a fi'},
  *          {key: 'b', lang: 'fi', value: 'b fi'},
@@ -17,70 +17,128 @@
  *  });
  *
  *  // Assign it to global object for later usage.
- *  Ext.i18n.setDefaultTranslator(translator);
+ *  I18n.setDefaultTranslator(translator);
  *
  *  translator._('abc');
  *  translator.translate('xyz');
- *  Ext.i18n._('a');
- *  Ext.i18n._('b', 'test');
- *  Ext.i18n._('soome {0} nice {1} thing {2}', ['foo','bar','baz'], 'test');
- *  Ext.i18n.translate('Abcdef');
+ *  I18n._('a');
+ *  I18n._('b', 'test');
+ *  I18n._('soome {0} nice {1} thing {2}', ['foo','bar','baz'], 'test');
+ *  I18n.translate('Abcdef');
  */
 
+(function(){
+    Ext.ns('I18n');
 
-/**
- * @class Ext.i18n
- * Convenience singleton to access global translation object.
- */
-Ext.define('Ext.i18n', {
-    statics: (function(){
+    Ext.require('Ext.util.HashMap', function(){
 
-        /**
-         * @type {Ext.i18n.Translator}
-         * @private
-         */
-        var tr = null;
+        var defaultTranslator,
+            language,
+            translators = new Ext.util.HashMap;
 
-        return {
+
             /**
-             * Set translator.
-             * @param {Ext.i18n.Translator}
+             * @class I18n
+             * Convenience singleton to access global translation object.
              */
-            setDefaultTranslator: function(translator) {
-                if (translator instanceof Ext.i18n.Translator) {
-                    tr = translator;
+        Ext.apply(I18n, {
+            /**
+             * Get registered translator by its name.
+             * @param {string} key
+             * @return {I18n.Translator|false}
+             */
+            getTranslator: function(key) {
+                return translators.get(key);
+            },
+
+            /**
+             * Register translator.
+             * @param {string} key
+             * @param {I18n.Translator} translator
+             * @return {boolean}
+             */
+            register: function(key, translator){
+                if (Ext.isString(key) && translator instanceof I18n.Translator) {
+                    translators.add(key, translator);
+                    return true;
+                }
+
+                return false;
+            },
+
+            /**
+             * Unregister translator.
+             * @param {I18n.Translator} translator
+             */
+            unregister: function(translator) {
+                if (Ext.isString(translator)) {
+                    translators.removeAtKey(translator);
+                } else if (translator instanceof I18n.Translator) {
+                    translators.remove(translator);
                 }
             },
 
             /**
-             * Get translator.
-             * @return {Ext.i18n.Translator}
+             * Set translator.
+             * @param {I18n.Translator}
+             */
+            setDefaultTranslator: function(translator) {
+                if (Ext.isString(translator) && translators.containsKey(translator)) {
+                    defaultTranslator = translators.get(translator);
+                    return true;
+                } else if (translator instanceof I18n.Translator) {
+                    defaultTranslator = translator;
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+
+            /**
+             * Get default translator.
+             * @return {I18n.Translator}
              */
             getDefaultTranslator: function(){
-                return tr;
+                return defaultTranslator;
+            },
+
+            /**
+             * Set language for each registered translator.
+             * @param {string} language
+             */
+            setLanguage: function(lang) {
+                translators.each(function(tr){
+                    tr.setLanguage(lang);
+                });
+                language = lang;
+            },
+
+            getLanguage: function(){
+                return language;
+            },
+
+            /**
+             * Alias function for "_".
+             */
+            translate: function() {
+                return this._.apply(this, arguments);
             },
 
             /**
              * Translates text.
              */
-            translate: function() {
-                return tr ? tr.translate.apply(tr, arguments) : arguments[0];
-            },
-
-            /**
-             * Alias function for "translate".
-             */
             _: function() {
-                return tr ? tr.translate.apply(tr, arguments) : arguments[0];
+                return defaultTranslator ? defaultTranslator.translate.apply(defaultTranslator, arguments) : arguments[0];
             }
-        };
-    })()
-});
+        });
+    })
+
+})();
 
 /**
  * Translator.
  */
-Ext.define('Ext.i18n.Translator', {
+Ext.define('I18n.Translator', {
     extend: 'Ext.util.Observable',
     alias: 'i18n.translator',
     language: null,
@@ -201,7 +259,7 @@ Ext.define('Ext.i18n.Translator', {
 
     /**
      * Alias for "translate" function.
-     * @see {Ext.i18n.Translator.translate}
+     * @see {I18n.Translator.translate}
      */
     _: function(){
         this.translate.call(this, arguments);
